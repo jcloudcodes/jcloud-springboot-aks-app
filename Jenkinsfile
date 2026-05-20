@@ -43,6 +43,6 @@ platformJavaAksPipeline(
 
   vaultRoleIdCredentialId: 'vault-approle-role-id',
   vaultSecretIdCredentialId: 'vault-approle-secret-id',
-  dockerCredentialId: 'jcloudcodes-dockerhub-cred,
+  dockerCredentialId: 'jcloudcodes-dockerhub-cred',
   gitopsRepoTokenCredentialId: 'gitops-repo-token'
 )
