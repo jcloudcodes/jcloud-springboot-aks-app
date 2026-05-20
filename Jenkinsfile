@@ -1,5 +1,7 @@
 @Library('JavaShared_library@main') _
 
+ agent { label 'jslave-inbound' }
+ 
 platformJavaAksPipeline(
   appName: 'jcloud-springboot-aks-app',
   javaVersion: '17',
