@@ -1,4 +1,4 @@
-@Library('JavaShared_library') _
+@Library('JavaShared_library@main') _
 
 platformJavaAksPipeline(
   appName: 'jcloud-springboot-aks-app',
