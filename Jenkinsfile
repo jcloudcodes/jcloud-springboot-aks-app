@@ -4,6 +4,8 @@
  
 platformJavaAksPipeline(
   appName: 'jcloud-springboot-aks-app',
+  agentLabel: 'jslave-inbound',
+  mavenToolName: 'sharedMaven',
   javaVersion: '17',
   mavenCommand: 'mvn',
   mavenCliOpts: '-B -DskipTests=false',
