@@ -1,7 +1,7 @@
 @Library('JavaShared_library@main') _
 
  agent { label 'jslave-inbound' }
- 
+
 platformJavaAksPipeline(
   appName: 'jcloud-springboot-aks-app',
   agentLabel: 'jslave-inbound',
@@ -43,6 +43,6 @@ platformJavaAksPipeline(
 
   vaultRoleIdCredentialId: 'vault-approle-role-id',
   vaultSecretIdCredentialId: 'vault-approle-secret-id',
-  dockerCredentialId: 'dockerhub-creds',
+  dockerCredentialId: 'jcloudcodes-dockerhub-cred,
   gitopsRepoTokenCredentialId: 'gitops-repo-token'
 )
