@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>User Dashboard</title>
+<link rel="stylesheet" type="text/css" th:href="@{/webjars/bootstrap/3.3.7/css/bootstrap.min.css}" />
+<link rel="stylesheet" type="text/css" th:href="@{/css/style.css}" />
+<style>
+body {
+	background: linear-gradient(135deg, #f7fbff 0%, #eef3ff 100%);
+}
+
+.dashboard-shell {
+	max-width: 1080px;
+}
+
+.ai-hero {
+	background: linear-gradient(135deg, #0f172a, #1e3a8a 55%, #0ea5e9);
+	color: #fff;
+	border-radius: 18px;
+	padding: 28px;
+	margin-bottom: 24px;
+	box-shadow: 0 22px 50px rgba(15, 23, 42, 0.18);
+}
+
+.ai-hero h2,
+.ai-hero h3,
+.ai-hero p {
+	color: #fff;
+}
+
+.ai-grid {
+	display: grid;
+	grid-template-columns: 1.2fr 0.8fr;
+	gap: 24px;
+}
+
+.ai-card {
+	background: #fff;
+	border-radius: 16px;
+	padding: 24px;
+	box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+	border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ai-card h3 {
+	margin-top: 0;
+	font-weight: 700;
+}
+
+.ai-card textarea {
+	border-radius: 12px;
+	resize: vertical;
+}
+
+.ai-actions .btn {
+	margin-right: 10px;
+	margin-bottom: 10px;
+}
+
+.result-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+	margin-bottom: 18px;
+}
+
+.result-stat {
+	background: #f8fafc;
+	border-radius: 12px;
+	padding: 14px;
+	border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.result-stat .eyebrow {
+	display: block;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #64748b;
+	margin-bottom: 6px;
+}
+
+.result-copy {
+	background: #f8fafc;
+	border-radius: 12px;
+	padding: 16px;
+	border: 1px solid rgba(148, 163, 184, 0.18);
+	margin-bottom: 12px;
+}
+
+.history-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.history-item {
+	border-left: 4px solid #38bdf8;
+	padding: 14px 16px;
+	margin-bottom: 12px;
+	background: #f8fafc;
+	border-radius: 0 12px 12px 0;
+}
+
+.history-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.history-result {
+	margin-top: 8px;
+	color: #334155;
+}
+
+.small-muted {
+	color: #64748b;
+	font-size: 13px;
+}
+
+@media (max-width: 900px) {
+	.ai-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.result-grid {
+		grid-template-columns: 1fr;
+	}
+}
+</style>
+</head>
+<body style="background:
+linear-gradient(rgba(244, 247, 251, 0.24), rgba(244, 247, 251, 0.24)),
+url('/img/dashboard-forest.png') center center / cover no-repeat fixed;">
+
+<div class="container dashboard-shell" style="margin-top:60px; margin-bottom:60px;">
+	<div class="ai-hero">
+		<div class="row">
+			<div class="col-sm-8">
+				<h2>Welcome, <span th:text="${user.firstName}"></span></h2>
+				<p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
+				<p>Use this workspace to send business text from the Spring Boot app to the Enterprise AI platform for sentiment analysis and summarization.</p>
+			</div>
+			<div class="col-sm-4 text-right">
+				<a href="/" class="btn btn-default" style="margin-top:20px;">Logout</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="ai-grid">
+		<div class="ai-card">
+			<h3>AI Workspace</h3>
+			<p class="small-muted">Paste customer feedback, support notes, project updates, or long-form text and send it to the FastAPI AI platform.</p>
+
+			<div th:if="${aiError}" class="alert alert-danger" th:text="${aiError}"></div>
+
+			<form th:action="@{'/dashboard/' + ${user.id} + '/ai/sentiment'}" method="post">
+				<div class="form-group">
+					<label for="aiText">Text for AI processing</label>
+					<textarea id="aiText" name="aiText" class="form-control" rows="8" placeholder="Paste customer feedback, support notes, or long-form business text here..." th:text="${aiText}"></textarea>
+				</div>
+				<div class="ai-actions">
+					<button type="submit" class="btn btn-primary btn-lg">Analyze Sentiment</button>
+					<button type="submit" class="btn btn-info btn-lg" formaction="#" th:attr="formaction=@{'/dashboard/' + ${user.id} + '/ai/summarize'}">Summarize Text</button>
+				</div>
+			</form>
+		</div>
+
+		<div class="ai-card">
+			<h3>Recent AI Calls</h3>
+			<p class="small-muted">This session history shows the latest AI requests from your dashboard.</p>
+
+			<ul class="history-list" th:if="${aiHistory != null and !aiHistory.isEmpty()}">
+				<li class="history-item" th:each="item : ${aiHistory}">
+					<div class="history-meta">
+						<span class="label label-primary" th:text="${item.action}"></span>
+						<span class="label label-default" th:text="${item.provider}"></span>
+						<span class="label" th:if="${item.prediction}" th:classappend="${#strings.equalsIgnoreCase(item.prediction, 'POSITIVE')} ? ' label-success' : ' label-danger'" th:text="${item.prediction}"></span>
+					</div>
+					<div><strong>Input:</strong> <span th:text="${item.inputPreview}"></span></div>
+					<div class="history-result"><strong>Result:</strong> <span th:text="${item.resultPreview}"></span></div>
+				</li>
+			</ul>
+
+			<div th:if="${aiHistory == null or aiHistory.isEmpty()}" class="result-copy">
+				<p class="small-muted" style="margin:0;">No AI history yet. Run sentiment analysis or summarize text and the latest results will appear here.</p>
+			</div>
+		</div>
+	</div>
+
+	<div class="ai-card" th:if="${aiResponse}" style="margin-top:24px;">
+		<h3>AI Result</h3>
+		<div class="result-grid">
+			<div class="result-stat">
+				<span class="eyebrow">Task</span>
+				<span th:text="${aiResponse.task}"></span>
+			</div>
+			<div class="result-stat">
+				<span class="eyebrow">Provider</span>
+				<span th:text="${aiResponse.provider}"></span>
+			</div>
+			<div class="result-stat">
+				<span class="eyebrow">Model</span>
+				<span th:text="${aiResponse.model}"></span>
+			</div>
+			<div class="result-stat">
+				<span class="eyebrow">Platform</span>
+				<span th:text="${aiResponse.platform}"></span>
+			</div>
+		</div>
+
+		<div th:if="${aiResponse.prediction}" class="result-copy">
+			<p>
+				<strong>Sentiment:</strong>
+				<span class="label" th:classappend="${aiSentimentClass}" th:text="${aiResponse.prediction}"></span>
+			</p>
+			<p><strong>Confidence:</strong> <span th:text="${aiResponse.confidence}"></span></p>
+		</div>
+
+		<div th:if="${aiResponse.summary}" class="result-copy">
+			<p class="eyebrow" style="margin-bottom:10px;">Summary</p>
+			<p style="margin-bottom:0;" th:text="${aiResponse.summary}"></p>
+		</div>
+
+		<div th:if="${aiResponse.error}" class="alert alert-danger" th:text="${aiResponse.error}"></div>
+	</div>
+</div>
+
+</body>
+</html>

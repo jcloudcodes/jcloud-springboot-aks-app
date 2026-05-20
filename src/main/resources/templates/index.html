@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- BOOTSTRAP CSS -->
+<link rel="stylesheet" type="text/css"
+	th:href="@{/webjars/bootstrap/3.3.7/css/bootstrap.min.css}" />
+
+<!-- CUSTOM CSS -->
+<link rel="stylesheet" type="text/css" th:href="@{/css/style.css}" />
+
+<title>Spring Boot MongoDB Demo</title>
+</head>
+
+<body>
+
+<!-- NAVBAR SECTION -->
+<nav class="navbar navbar-custom navbar-fixed-top">
+	<div class="container-fluid">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="/">Eghosa Technologies</a>
+		</div>
+
+		<ul class="nav navbar-nav navbar-right">
+			<li><a href="https://spring.io/projects/spring-boot" target="_blank">Spring Boot</a></li>
+			<li><a href="https://www.mongodb.com/" target="_blank">MongoDB</a></li>
+			<li><a href="https://helm.sh/" target="_blank">Helm</a></li>
+			<li><a href="https://argo-cd.readthedocs.io/" target="_blank">Argo CD GitOps</a></li>
+		</ul>
+	</div>
+</nav>
+
+<!-- MAIN PAGE CONTAINER -->
+<div class="container main-container">
+
+	<!-- HERO SECTION -->
+	<div class="hero-section">
+		<div class="hero-text">
+			<h1>Spring Boot, MongoDB, Helm, Argo CD GitOps 2025</h1>
+			<p>
+				Enterprise Cloud-Native Microservices Platform Powered By Spring Boot,
+				MongoDB, Helm, and Argo CD GitOps.
+			</p>
+		</div>
+
+		<div class="hero-logo">
+			<img th:src="@{/img/mithunlogo.jpg}" alt="logo" class="clickable-img">
+		</div>
+	</div>
+
+	<!-- SIGNUP FORM + USERS TABLE SECTION -->
+	<div class="row content-section">
+
+		<!-- SIGNUP FORM CARD -->
+		<div class="col-md-5 form-card">
+			<h3>Create Account</h3>
+
+			<form id="signupForm" name="saveUser" action="/save" method="post" class="form-horizontal">
+
+				<!-- FIRST NAME FIELD -->
+				<div class="form-group">
+					<label for="firstName">First Name:</label>
+					<input type="text" id="firstName" class="form-control"
+						placeholder="First Name" name="firstName" />
+				</div>
+
+				<!-- LAST NAME FIELD -->
+				<div class="form-group">
+					<label for="lastName">Last Name:</label>
+					<input type="text" id="lastName" class="form-control"
+						placeholder="Last Name" name="lastName">
+				</div>
+
+				<!-- EMAIL FIELD -->
+				<div class="form-group">
+					<label for="email">Email:</label>
+					<input type="email" id="email" class="form-control"
+						placeholder="Email" name="email">
+				</div>
+
+				<!-- PASSWORD FIELD -->
+				<div class="form-group">
+					<label for="password">Password:</label>
+					<input type="password" id="password" class="form-control"
+						placeholder="Password" name="password">
+				</div>
+
+				<!-- CONFIRM PASSWORD FIELD -->
+				<div class="form-group">
+					<label for="confirmPassword">Confirm Password:</label>
+					<input type="password" id="confirmPassword" class="form-control"
+						placeholder="Confirm Password" name="confirmPassword">
+				</div>
+
+				<!-- PASSWORD ERROR MESSAGE -->
+				<p id="passwordError" style="color:red; display:none;">
+					Password and Confirm Password do not match.
+				</p>
+
+				<!-- SIGN UP BUTTON -->
+				<div class="form-group">
+					<button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+				</div>
+
+				<!-- LOGIN LINK -->
+				<p class="text-center" style="margin-top:15px;">
+					Already have an account?
+					<a href="/login">Login here</a>
+				</p>
+
+			</form>
+		</div>
+
+		<!-- SAVED USERS TABLE CARD -->
+		<!-- SAVED USERS SLIDER CARD -->
+<div class="col-md-7 table-card">
+	<h3>Saved Users</h3>
+
+	<div class="users-slider-wrapper">
+
+		<!-- LEFT ARROW -->
+		<button type="button" class="slider-btn left-btn" id="slideLeft">
+			&#10094;
+		</button>
+
+		<!-- USERS SLIDER -->
+		<div class="users-slider" id="usersSlider">
+			<!-- Users will load here from app.js -->
+		</div>
+
+		<!-- RIGHT ARROW -->
+		<button type="button" class="slider-btn right-btn" id="slideRight">
+			&#10095;
+		</button>
+
+	</div>
+</div>
+	<!-- FOOTER SECTION -->
+	<footer class="footer-card">
+		<h4>Eghosa Technologies : Enterprise Cloud-Native Microservices Platform.</h4>
+		<h4>Contact @ +8324387775</h4>
+		<h5>
+			Copyrights 2025 by
+			<a href="http://eagunutechonologies.com/" target="_blank">
+				Eghosa Technologies
+			</a>
+		</h5>
+	</footer>
+
+</div>
+
+<!-- IMAGE OVERLAY SECTION -->
+<div id="overlay" class="overlay"></div>
+
+<!-- jQuery FIRST -->
+<script type="text/javascript"
+	th:src="@{/webjars/jquery/3.2.1/jquery.min.js}"></script>
+
+<!-- BOOTSTRAP JS -->
+<script type="text/javascript"
+	th:src="@{/webjars/bootstrap/3.3.7/js/bootstrap.min.js}"></script>
+
+<!-- CUSTOM JS -->
+<script type="text/javascript" th:src="@{/js/app.js}"></script>
+
+</body>
+</html>

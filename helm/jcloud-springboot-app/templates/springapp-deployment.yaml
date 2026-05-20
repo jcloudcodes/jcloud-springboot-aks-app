@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mss.fullname" . }}
+  namespace: {{ .Values.global.namespaceOverride }}
+spec:
+  replicas: {{ .Values.springapp.replicaCount }}
+  selector:
+    matchLabels:
+      app: springapp
+  template:
+    metadata:
+      labels:
+        app: springapp
+    spec:
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      containers:
+        - name: springapp
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          ports:
+            - containerPort: {{ .Values.springapp.containerPort }}
+
+          env:
+            - name: MONGO_DB_HOSTNAME
+              value: {{ .Values.springapp.env.mongoHost | quote }}
+
+            - name: MONGO_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.vault.secretName }}
+                  key: MONGO_DB_USERNAME
+
+            - name: MONGO_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.vault.secretName }}
+                  key: MONGO_DB_PASSWORD

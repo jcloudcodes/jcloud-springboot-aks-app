@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<title>Login</title>
+<link rel="stylesheet" type="text/css" th:href="@{/webjars/bootstrap/3.3.7/css/bootstrap.min.css}" />
+<link rel="stylesheet" type="text/css" th:href="@{/css/style.css}" />
+<style>
+body.login-page {
+	background:
+		linear-gradient(rgba(9, 28, 61, 0.20), rgba(9, 28, 61, 0.20)),
+		url('/img/login-tropical.png') center center / cover no-repeat fixed;
+	min-height: 100vh;
+	position: relative;
+	overflow: hidden;
+}
+
+body.login-page::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	background:
+		linear-gradient(rgba(13, 36, 78, 0.16), rgba(13, 36, 78, 0.16));
+	z-index: -2;
+}
+
+body.login-page::after {
+	content: none;
+}
+
+.login-shell {
+	margin-top: 100px;
+}
+
+.login-card {
+	background: rgba(255, 255, 255, 0.92);
+	border-radius: 18px;
+	padding: 26px;
+	box-shadow: 0 20px 40px rgba(9, 33, 73, 0.20);
+	backdrop-filter: blur(4px);
+}
+
+.login-card h3 {
+	margin-top: 0;
+	font-size: 36px;
+	font-weight: 700;
+	color: #102343;
+	margin-bottom: 18px;
+}
+
+.login-card label {
+	color: #18355f;
+	font-weight: 700;
+}
+
+.login-card .form-control {
+	height: 44px;
+	border-radius: 10px;
+	border: 1px solid rgba(29, 85, 173, 0.20);
+	box-shadow: none;
+}
+
+.login-card .btn-primary {
+	margin-top: 8px;
+	height: 44px;
+	font-size: 16px;
+	font-weight: 700;
+}
+</style>
+</head>
+<body class="login-page">
+
+<div class="container login-shell">
+	<div class="col-md-4 col-md-offset-4 login-card">
+		<h3>Login</h3>
+
+		<form action="/login" method="post">
+			<div class="form-group">
+				<label>Email:</label>
+				<input type="email" class="form-control" name="email" required>
+			</div>
+
+			<div class="form-group">
+				<label>Password:</label>
+				<input type="password" class="form-control" name="password" required>
+			</div>
+
+			<button type="submit" class="btn btn-primary btn-block">Login</button>
+		</form>
+
+		<p th:if="${error}" style="color:red; margin-top:15px;" th:text="${error}"></p>
+	</div>
+</div>
+
+</body>
+</html>

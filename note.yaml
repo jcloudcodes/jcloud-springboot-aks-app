@@ -1,0 +1,74 @@
+#Run:KHRMBUzszHMyFvbI
+argocd app sync jcloud-springboot-aks-app --grpc-web
+
+#Run the helm chart
+Deploy your Spring Boot app to the new AKS the same way as the AI app:
+Spring Boot Repo
+   ↓ GitLab CI builds image
+GitLab Container Registry
+   ↓ image tag updated
+ai-platform-gitops repo
+   ↓ Argo CD sync
+AKS deploys Spring Boot app
+
+1. Create namespace:
+  kubectl create namespace springboot-platform
+
+2.1 create a secret: this file is managing secret from vault, used in helm/jcloud-springboot-app/values.yaml
+    dockerhub-external-secret.yaml
+#2.1 manages this in helm/jcloud-springboot-app/values.yaml if is dockerhub
+image:
+  repository: jcloudcodes/jcloud-springboot-app
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+    imagePullSecrets:
+      - name: dockerhub-secret
+
+2.2 Create GitLab registry secret in AKS:
+  kubectl create secret docker-registry gitlab-registry-secret \
+  --docker-server=registry.gitlab.com \
+  --docker-username='jcloudcodes' \
+  --docker-password='glpat-AX5RogqdL5rX-7nG4ae_lmM6MQpvOjEKdTpseXZidQ8.01.170vaoq63' \
+  --docker-email='jcloudcodes@gmail.com' \
+  -n springboot-platform
+#2.2 manages this in helm/jcloud-springboot-app/values.yaml if is GitLab repository
+   image:
+  repository: registry.gitlab.com/jcloudcodesgroup/jcloud-springboot-app
+  tag: "latest"
+  pullPolicy: Always
+
+    imagePullSecrets:
+      - name: gitlab-registry-secret
+
+
+3. Helm chart structure:
+Inside your Spring Boot repo:
+jcloud-springboot-app/
+├── Dockerfile
+├── pom.xml
+├── src/
+├── helm/
+│   └── jcloud-springboot-app/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+│           ├── deployment.yaml
+│           ├── service.yaml
+│           └── ingress.yaml
+└── .gitlab-ci.yml
+
+#check this values
+  5. helm/jcloud-springboot-app/values.yaml:
+
+
+#Deploy manually first
+From Spring Boot repo:
+helm upgrade --install jcloud-springboot-app helm/jcloud-springboot-app   -n springboot-platform
+ --create-namespace
+
+
+argocd repo add https://gitlab.com/UDdeployTemplate/jcloud_argocd.git \
+  --username jcloudcodes \
+  --password glpat-AX5RogqdL5rX-7nG4ae_lmM6MQpvOjEKdTpseXZidQ8.01.170vaoq63 \
+  --grpc-web

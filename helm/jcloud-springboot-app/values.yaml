@@ -1,0 +1,64 @@
+global:
+  environment: dev
+  namespaceOverride: springboot-platform
+
+image:
+  repository: jcloudcodes/jcloud-springboot-app
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: dockerhub-secret
+
+springapp:
+  replicaCount: 2
+  containerPort: 8080
+
+  env:
+    mongoHost: mongo
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  ingress:
+    enabled: true
+    className: nginx
+    host: springboot.jcloudcodes.com
+
+  probes:
+    enabled: false
+
+mongo:
+  replicaCount: 1
+  image:
+    repository: mongo
+    tag: "7"
+
+  service:
+    port: 27017
+
+  persistence:
+    storageClassName: standard-rwo
+    size: 10Gi
+
+vault:
+  enabled: true
+  secretName: mongo-secret
+  secretStore:
+    name: vault-backend
+    kind: ClusterSecretStore
+
+  remoteRefs:
+    mongoUsername:
+      key: jcloudcodes/java-web-app
+      property: MONGO_DB_USERNAME
+    mongoPassword:
+      key: jcloudcodes/java-web-app
+      property: MONGO_DB_PASSWORD
+    mongoRootUsername:
+      key: jcloudcodes/java-web-app
+      property: MONGO_INITDB_ROOT_USERNAME
+    mongoRootPassword:
+      key: jcloudcodes/java-web-app
+      property: MONGO_INITDB_ROOT_PASSWORD

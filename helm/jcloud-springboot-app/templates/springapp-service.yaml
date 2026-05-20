@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mss.fullname" . }}
+  namespace: {{ .Values.global.namespaceOverride }}
+spec:
+  selector:
+    app: springapp
+  ports:
+    - port: {{ .Values.springapp.service.port }}
+      targetPort: {{ .Values.springapp.containerPort }}
