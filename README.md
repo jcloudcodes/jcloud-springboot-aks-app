@@ -679,6 +679,226 @@ kubectl apply --server-side -f https://raw.githubusercontent.com/argoproj/argo-c
 kubectl rollout restart deployment argocd-applicationset-controller -n argocd
 ```
 
+## Latest Troubleshooting And Resolution
+
+### GitOps workspace ownership issue
+
+Problem:
+
+- the `GitOps Update` stage failed with a Jenkins workspace cleanup error:
+
+```text
+Unable to delete .../gitops-repo
+```
+
+Cause:
+
+- earlier Docker-based `yq` edits wrote files in `gitops-repo` as `root`
+- later Jenkins runs could not remove that directory during `deleteDir()`
+
+Resolution:
+
+- updated the shared library so GitOps `yq` writes run as the Jenkins user:
+  - `--user "$(id -u):$(id -g)"`
+- added a defensive cleanup step before clone that removes stale `gitops-repo` through Docker
+- fixed that cleanup to use:
+  - `--entrypoint sh`
+  - `--user 0:0`
+
+Shared library commits that resolved this:
+
+- `Run GitOps yq container as Jenkins user to avoid root-owned workspace files`
+- `Escape shell user substitution in GitOps container command`
+- `Force-clean stale GitOps workspace before clone in Jenkins pipeline`
+- `Fix GitOps cleanup container entrypoint in shared Jenkins library`
+- `Run stale GitOps workspace cleanup as root in shared Jenkins library`
+
+### Argo CD bootstrap kubeconfig path mismatch
+
+Problem:
+
+- `Bootstrap Argo CD App` kept failing even after the `Application` CRD existed
+- manual testing inside `gitops-repo` showed:
+
+```text
+error: current-context is not set
+```
+
+Cause:
+
+- the shared library wrote the kubeconfig to the parent Jenkins workspace:
+  - `.kube/config`
+- but the bootstrap stage `cd`'d into `gitops-repo` and mounted:
+  - `gitops-repo/.kube`
+- so the `kubectl` container used an empty kubeconfig path
+
+Resolution:
+
+- updated the shared library to copy:
+  - `../.kube/config`
+- into:
+  - `gitops-repo/.kube/config`
+- before running `kubectl apply`
+
+Shared library commit:
+
+- `Copy workspace kubeconfig into GitOps repo before Argo CD bootstrap`
+
+### Argo CD bootstrap validation issue
+
+Problem:
+
+- Argo CD app bootstrap failed with Kubernetes OpenAPI validation errors:
+
+```text
+failed to download openapi
+```
+
+Resolution:
+
+- updated bootstrap apply to use:
+
+```bash
+kubectl apply --validate=false -f applications/mss-dev.yaml
+```
+
+Shared library commit:
+
+- `Disable kubectl schema validation for Argo CD app bootstrap`
+
+### Argo CD repo authentication failure
+
+Problem:
+
+- Argo CD sync failed even though Jenkins had the GitOps token
+- error showed GitLab repository authentication was denied from Argo CD itself
+
+Cause:
+
+- Jenkins credentials do not automatically become Argo CD repository credentials
+- Argo CD needed its own repo secret or repo registration for:
+  - `https://gitlab.com/UDdeployTemplate/jcloud_argocd.git`
+
+Resolution:
+
+- add the GitOps repo credential to Argo CD itself
+- either by:
+  - `argocd repo add ... --username oauth2 --password <TOKEN>`
+- or by applying an Argo CD repository secret in the `argocd` namespace
+
+### Argo CD sync session loss between containers
+
+Problem:
+
+- `argocd login` succeeded in one container
+- then `argocd app get` failed in the next container with:
+
+```text
+Argo CD server address unspecified
+```
+
+Cause:
+
+- each Argo CD command was running in a new container
+- login state was not shared between containers
+
+Resolution:
+
+- updated the shared library so each Argo CD command logs in inline inside the same container before running:
+  - `app get`
+  - `app sync`
+  - `app wait`
+
+Shared library commit:
+
+- `Run Argo CD sync commands with inline login in shared Jenkins library`
+
+### External Secrets missing from cluster
+
+Problem:
+
+- Argo CD reported the app as `OutOfSync` and `Missing`
+- app details showed:
+
+```text
+The Kubernetes API could not find external-secrets.io/ExternalSecret
+```
+
+Cause:
+
+- External Secrets Operator and its CRDs were not installed in the AKS cluster yet
+
+Resolution:
+
+Install External Secrets Operator:
+
+```bash
+helm repo add external-secrets https://charts.external-secrets.io
+helm repo update
+
+kubectl create namespace external-secrets --dry-run=client -o yaml | kubectl apply -f -
+
+helm upgrade --install external-secrets external-secrets/external-secrets   -n external-secrets
+```
+
+Verify CRDs:
+
+```bash
+kubectl get crd | grep external-secrets.io
+```
+
+Apply the Vault `ClusterSecretStore`:
+
+```bash
+kubectl apply -f /Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/jcloud-springboot-aks-app/vault-clustersecretstore.yaml
+kubectl get clustersecretstore
+kubectl describe clustersecretstore vault-backend
+```
+
+### Argo CD app sync in-progress conflict
+
+Problem:
+
+- Argo CD sync sometimes failed with:
+
+```text
+another operation is already in progress
+```
+
+Resolution:
+
+```bash
+argocd app terminate-op jcloud-springboot-aks-app --grpc-web
+argocd app sync jcloud-springboot-aks-app --grpc-web
+argocd app wait jcloud-springboot-aks-app --health --sync --timeout 600 --grpc-web
+```
+
+### Current verified order for Spring Boot deployment
+
+The order that worked best in this environment was:
+
+1. Provision or restore AKS prerequisites:
+   - resource group
+   - VNet
+   - subnet
+2. Create or restore AKS and fetch kubeconfig
+3. Store `AKS_KUBECONFIG_B64` in Vault
+4. Configure Jenkins AppRole credentials for Vault
+5. Install `ingress-nginx`
+6. Install Argo CD
+7. Patch `argocd-server` with `--insecure`
+8. Install `applicationsets.argoproj.io` CRD with server-side apply
+9. Install External Secrets Operator
+10. Apply `vault-clustersecretstore.yaml`
+11. Register the GitOps repo credential in Argo CD
+12. Run the Jenkins pipeline:
+    - Build
+    - Docker Push
+    - GitOps Update
+    - Bootstrap Argo CD App
+    - Argo CD Sync
+    - Verify Environment
+
 ## Notes
 
 - The shared library was intentionally tested in small steps first:
