@@ -10,22 +10,135 @@ body {
 }
 
 .dashboard-shell {
-	max-width: 1080px;
+	max-width: 1180px;
 }
 
 .ai-hero {
-	background: linear-gradient(135deg, #0f172a, #1e3a8a 55%, #0ea5e9);
+	background: linear-gradient(135deg, #020617 0%, #0b1027 54%, #1d2f6f 100%);
 	color: #fff;
-	border-radius: 18px;
-	padding: 28px;
+	border-radius: 26px;
+	padding: 32px;
 	margin-bottom: 24px;
 	box-shadow: 0 22px 50px rgba(15, 23, 42, 0.18);
+	overflow: hidden;
+	position: relative;
+}
+
+.ai-hero::after {
+	content: "";
+	position: absolute;
+	top: -18%;
+	right: -11%;
+	width: 340px;
+	height: 340px;
+	border-radius: 42% 0 0 58%;
+	background: linear-gradient(180deg, rgba(67, 97, 238, 0.44), rgba(30, 64, 175, 0.82));
+	filter: blur(2px);
+	pointer-events: none;
 }
 
 .ai-hero h2,
 .ai-hero h3,
-.ai-hero p {
+.ai-hero p,
+.ai-hero li,
+.ai-hero a,
+.ai-hero strong,
+.ai-hero span {
 	color: #fff;
+}
+
+.ai-hero-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+	gap: 28px;
+	align-items: stretch;
+	position: relative;
+	z-index: 1;
+}
+
+.ai-hero-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
+}
+
+.ai-hero-topbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 18px;
+}
+
+.ai-hero-topbar h2 {
+	margin: 0 0 10px;
+	font-size: 34px;
+	font-weight: 700;
+}
+
+.ai-hero-topbar p {
+	margin: 0 0 8px;
+	font-size: 15px;
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.ai-hero-copy .btn {
+	border-radius: 999px;
+	padding: 10px 18px;
+	font-weight: 600;
+}
+
+.ai-platform-list {
+	margin: 0;
+	padding-left: 28px;
+	font-size: 22px;
+	font-weight: 600;
+	line-height: 1.9;
+}
+
+.ai-platform-list li::marker {
+	color: rgba(255, 255, 255, 0.92);
+}
+
+.ai-model-line {
+	font-size: 22px;
+	font-weight: 700;
+	margin: 0;
+}
+
+.ai-endpoints-card {
+	background: rgba(2, 6, 23, 0.72);
+	border: 1px solid rgba(56, 189, 248, 0.35);
+	border-radius: 22px;
+	padding: 26px 28px;
+	box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.08), 0 18px 40px rgba(2, 6, 23, 0.22);
+	backdrop-filter: blur(4px);
+	align-self: center;
+}
+
+.ai-endpoints-card h3 {
+	margin: 0 0 22px;
+	font-size: 26px;
+	font-weight: 700;
+}
+
+.ai-endpoints-list {
+	margin: 0;
+	padding-left: 28px;
+}
+
+.ai-endpoints-list li {
+	margin-bottom: 12px;
+	font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 22px;
+	font-weight: 600;
+	letter-spacing: 0.01em;
+	color: rgba(226, 232, 240, 0.96);
+}
+
+.ai-endpoints-list a {
+	color: #38bdf8;
+	font-family: inherit;
+	text-decoration: underline;
 }
 
 .ai-grid {
@@ -120,12 +233,37 @@ body {
 }
 
 @media (max-width: 900px) {
+	.ai-hero-layout,
 	.ai-grid {
 		grid-template-columns: 1fr;
 	}
 
+	.ai-hero-topbar {
+		flex-direction: column;
+	}
+
+	.ai-endpoints-card {
+		padding: 22px;
+	}
+
 	.result-grid {
 		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 640px) {
+	.ai-hero {
+		padding: 24px;
+	}
+
+	.ai-hero-topbar h2 {
+		font-size: 28px;
+	}
+
+	.ai-platform-list,
+	.ai-model-line,
+	.ai-endpoints-list li {
+		font-size: 18px;
 	}
 }
 </style>
@@ -136,15 +274,46 @@ url('/img/dashboard-forest.png') center center / cover no-repeat fixed;">
 
 <div class="container dashboard-shell" style="margin-top:60px; margin-bottom:60px;">
 	<div class="ai-hero">
-		<div class="row">
-			<div class="col-sm-8">
-				<h2>Welcome, <span th:text="${user.firstName}"></span></h2>
-				<p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
-				<p>Use this workspace to send business text from the Spring Boot app to the Enterprise AI platform for sentiment analysis and summarization.</p>
+		<div class="ai-hero-layout">
+			<div class="ai-hero-copy">
+				<div class="ai-hero-topbar">
+					<div>
+						<h2>Welcome, <span th:text="${user.firstName}"></span></h2>
+						<p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
+						<p>Use this workspace to send business text from the Spring Boot app to the Enterprise AI platform for sentiment analysis and summarization.</p>
+					</div>
+					<a href="/" class="btn btn-default">Logout</a>
+				</div>
+
+				<div>
+					<p style="font-size:22px; font-weight:700; margin:0 0 12px;">Real Transformer AI inference platform running on:</p>
+					<ul class="ai-platform-list">
+						<li>Kubernetes</li>
+						<li>AKS / EKS / GKE Ready</li>
+						<li>GitLab CI/CD</li>
+						<li>Argo CD GitOps</li>
+						<li>Helm</li>
+						<li>Prometheus</li>
+						<li>Grafana</li>
+						<li>Multi-Model Inference Routing</li>
+						<li>Ask AI Knowledge Assistant</li>
+					</ul>
+				</div>
+
+				<p class="ai-model-line">Model: distilbert-base-uncased-finetuned-sst-2-english</p>
 			</div>
-			<div class="col-sm-4 text-right">
-				<a href="/" class="btn btn-default" style="margin-top:20px;">Logout</a>
-			</div>
+
+			<aside class="ai-endpoints-card">
+				<h3>Endpoints:</h3>
+				<ul class="ai-endpoints-list">
+					<li>GET /health</li>
+					<li>POST /predict/sentiment</li>
+					<li>POST /predict/summarize</li>
+					<li>POST /predict/answer</li>
+					<li>GET /metrics</li>
+					<li><a href="https://ai.jcloudcodes.com/docs" target="_blank" rel="noopener noreferrer">Swagger API Docs</a></li>
+				</ul>
+			</aside>
 		</div>
 	</div>
 
