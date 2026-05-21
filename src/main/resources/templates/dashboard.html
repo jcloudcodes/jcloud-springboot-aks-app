@@ -48,43 +48,51 @@ body {
 }
 
 .ai-hero-layout {
-	display: grid;
-	grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
-	gap: 28px;
-	align-items: stretch;
 	position: relative;
 	z-index: 1;
 }
 
-.ai-hero-copy {
-	display: flex;
-	flex-direction: column;
-	gap: 18px;
-}
-
-.ai-hero-topbar {
+.ai-hero-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: flex-start;
 	gap: 18px;
+	margin-bottom: 20px;
 }
 
-.ai-hero-topbar h2 {
-	margin: 0 0 10px;
-	font-size: 34px;
-	font-weight: 700;
+.ai-hero-header h1 {
+	margin: 0 0 12px;
+	font-size: 64px;
+	line-height: 1.02;
+	font-weight: 800;
+	color: #38bdf8;
 }
 
-.ai-hero-topbar p {
+.ai-hero-header p {
 	margin: 0 0 8px;
 	font-size: 15px;
 	color: rgba(255, 255, 255, 0.82);
 }
 
-.ai-hero-copy .btn {
+.ai-hero-header .btn {
 	border-radius: 999px;
 	padding: 10px 18px;
 	font-weight: 600;
+	margin-top: 6px;
+}
+
+.ai-hero-columns {
+	display: flex;
+	align-items: flex-start;
+	gap: 34px;
+}
+
+.ai-hero-copy {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 18px;
 }
 
 .ai-platform-list {
@@ -106,6 +114,9 @@ body {
 }
 
 .ai-endpoints-card {
+	flex: 0 0 370px;
+	max-width: 370px;
+	margin-left: auto;
 	background: rgba(2, 6, 23, 0.72);
 	border: 1px solid rgba(56, 189, 248, 0.35);
 	border-radius: 22px;
@@ -232,17 +243,16 @@ body {
 	font-size: 13px;
 }
 
-@media (max-width: 900px) {
-	.ai-hero-layout,
+@media (max-width: 1024px) {
+	.ai-hero-columns,
 	.ai-grid {
-		grid-template-columns: 1fr;
-	}
-
-	.ai-hero-topbar {
 		flex-direction: column;
+		display: flex;
 	}
 
 	.ai-endpoints-card {
+		width: 100%;
+		max-width: none;
 		padding: 22px;
 	}
 
@@ -256,8 +266,12 @@ body {
 		padding: 24px;
 	}
 
-	.ai-hero-topbar h2 {
-		font-size: 28px;
+	.ai-hero-header {
+		flex-direction: column;
+	}
+
+	.ai-hero-header h1 {
+		font-size: 42px;
 	}
 
 	.ai-platform-list,
@@ -275,19 +289,21 @@ url('/img/dashboard-forest.png') center center / cover no-repeat fixed;">
 <div class="container dashboard-shell" style="margin-top:60px; margin-bottom:60px;">
 	<div class="ai-hero">
 		<div class="ai-hero-layout">
-			<div class="ai-hero-copy">
-				<div class="ai-hero-topbar">
-					<div>
-						<h2>Welcome, <span th:text="${user.firstName}"></span></h2>
-						<p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
-						<p>Use this workspace to send business text from the Spring Boot app to the Enterprise AI platform for sentiment analysis and summarization.</p>
-					</div>
-					<a href="/" class="btn btn-default">Logout</a>
-				</div>
-
+			<div class="ai-hero-header">
 				<div>
-					<p style="font-size:22px; font-weight:700; margin:0 0 12px;">Real Transformer AI inference platform running on:</p>
-					<ul class="ai-platform-list">
+					<h1>Enterprise AI/ML Cloud Platform</h1>
+					<p><strong>User:</strong> <span th:text="${user.firstName}"></span></p>
+					<p><strong>Email:</strong> <span th:text="${user.email}"></span></p>
+					<p>Use this workspace to send business text from the Spring Boot app to the Enterprise AI platform for sentiment analysis and summarization.</p>
+				</div>
+				<a href="/" class="btn btn-default">Logout</a>
+			</div>
+
+			<div class="ai-hero-columns">
+				<div class="ai-hero-copy">
+					<div>
+						<p style="font-size:22px; font-weight:700; margin:0 0 12px;">Real Transformer AI inference platform running on:</p>
+						<ul class="ai-platform-list">
 						<li>Kubernetes</li>
 						<li>AKS / EKS / GKE Ready</li>
 						<li>GitLab CI/CD</li>
@@ -300,10 +316,10 @@ url('/img/dashboard-forest.png') center center / cover no-repeat fixed;">
 					</ul>
 				</div>
 
-				<p class="ai-model-line">Model: distilbert-base-uncased-finetuned-sst-2-english</p>
-			</div>
+					<p class="ai-model-line">Model: distilbert-base-uncased-finetuned-sst-2-english</p>
+				</div>
 
-			<aside class="ai-endpoints-card">
+				<aside class="ai-endpoints-card">
 				<h3>Endpoints:</h3>
 				<ul class="ai-endpoints-list">
 					<li>GET /health</li>
@@ -313,7 +329,8 @@ url('/img/dashboard-forest.png') center center / cover no-repeat fixed;">
 					<li>GET /metrics</li>
 					<li><a href="https://ai.jcloudcodes.com/docs" target="_blank" rel="noopener noreferrer">Swagger API Docs</a></li>
 				</ul>
-			</aside>
+				</aside>
+			</div>
 		</div>
 	</div>
 
