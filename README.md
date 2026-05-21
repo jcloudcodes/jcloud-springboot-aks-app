@@ -1,347 +1,201 @@
 # jcloud-springboot-aks-app
 
-Spring Boot application with MongoDB deployed to AKS through GitLab CI, Vault, Argo CD, Helm, and External Secrets.
+Spring Boot application deployed to AKS with Jenkins shared library, Vault, Argo CD, Helm, External Secrets, and NGINX Ingress.
 
 ## Overview
 
-This project uses:
+This repository is the application repo.
 
-- Spring Boot for the application
-- MongoDB as a StatefulSet
-- Helm for packaging Kubernetes resources
-- Argo CD for GitOps delivery
-- Vault for secret storage
-- External Secrets Operator to sync Vault values into Kubernetes secrets
-- GitLab CI templates for build, image publish, GitOps update, Argo CD bootstrap, deploy, and verification
-
-Current related repositories:
+Related repos:
 
 - App repo:
-  - [jcloud-springboot-aks-app](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud-springboot-aks-app)
+  - [jcloud-springboot-aks-app](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/jcloud-springboot-aks-app)
+- Jenkins shared library:
+  - [JavaShared_library](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/JavaShared_library)
 - GitOps repo:
-  - [jcloud_argocd](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud_argocd)
-- Shared CI templates:
-  - [jcloudcodes_template/gitlab-ci](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloudcodes_template/gitlab-ci)
+  - [jcloud_argocd](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/jcloud_argocd)
 
-## Deployment Flow
+Main components used:
 
-The intended deployment flow is:
+- Spring Boot
+- Maven
+- Docker
+- AKS
+- Helm
+- Argo CD
+- Vault
+- External Secrets Operator
+- Jenkins shared library
+- ingress-nginx
 
-1. Commit code to the Spring Boot app repo.
-2. GitLab CI builds and tests the app.
-3. Docker image is built and pushed.
-4. GitLab CI updates the image tag in the GitOps repo.
-5. GitLab CI bootstraps the Argo CD `Application` if needed.
-6. Argo CD syncs the Helm chart from the GitOps repo to AKS.
+## Working Deployment Flow
+
+1. Build and test the Spring Boot app in Jenkins.
+2. Build and push the Docker image.
+3. Update the image tag in the GitOps repo.
+4. Refresh Vault-backed ESO token flow if needed.
+5. Bootstrap the Argo CD `Application`.
+6. Sync Argo CD to deploy the Helm release into AKS.
 7. External Secrets reads Vault and creates Kubernetes secrets.
-8. Spring Boot and MongoDB start in the target namespace.
+8. The application starts in the `mss-dev` namespace.
 
-## Important Files
+## Jenkins App Configuration
 
-App repo:
+This app consumes the Jenkins shared library through:
 
-- [Dockerfile](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud-springboot-aks-app/Dockerfile)
-- [.gitlab-ci.yml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud-springboot-aks-app/.gitlab-ci.yml)
-- [helm/jcloud-springboot-app](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud-springboot-aks-app/helm/jcloud-springboot-app)
+- [Jenkinsfile](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/jcloud-springboot-aks-app/Jenkinsfile)
 
-GitOps repo:
+The app Jenkinsfile uses:
 
-- [applications/mss-dev.yaml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud_argocd/applications/mss-dev.yaml)
-- [environments/dev/values.yaml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud_argocd/environments/dev/values.yaml)
-- [platform/external-secrets/vault-clustersecretstore.yaml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud_argocd/platform/external-secrets/vault-clustersecretstore.yaml)
+- `@Library('JavaShared_library@main') _`
+- agent label:
+  - `jslave-inbound`
+- Maven tool:
+  - `sharedMaven`
 
-Shared AKS CI template:
+Important pipeline config used here:
 
-- [.gitops-aks.jobs.yml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloudcodes_template/gitlab-ci/templates/.gitops-aks.jobs.yml)
+- `appName: 'jcloud-springboot-aks-app'`
+- `imageRepository: 'jcloudcodes/jcloud-springboot-aks-app'`
+- `gitopsRepoUrl: 'https://gitlab.com/UDdeployTemplate/jcloud_argocd.git'`
+- `gitopsBranch: 'main'`
+- `helmValuesFile: 'environments/dev/values.yaml'`
+- `argocdAppManifestFile: 'applications/mss-dev.yaml'`
+- `argocdAppName: 'jcloud-springboot-aks-app'`
+- `argocdServer: 'argocd.jcloudcodes.com'`
+- `kubeNamespace: 'mss-dev'`
+- `aksClusterName: 'sap-dev-aksdemo1'`
 
-## GitLab CI Variables
+## AKS Terraform Notes
 
-Main variables used in the AKS app pipeline:
+The AKS Terraform setup used for this environment is in:
 
-- `APP_NAME`
-- `IMAGE_REPOSITORY`
-- `IMAGE_TAG`
-- `VAULT_ADDR`
-- `VAULT_NAMESPACE`
-- `VAULT_ROLE`
-- `VAULT_KV_MOUNT`
-- `VAULT_SECRET_PATH`
-- `AKS_CLUSTER_NAME`
-- `KUBE_NAMESPACE`
-- `HELM_REPO_URL`
-- `HELM_VALUES_FILE`
-- `ARGOCD_APP_MANIFEST_FILE`
-- `ARGOCD_SERVER`
-- `ARGOCD_APP_NAME`
-- `EXTERNAL_SECRETS_NAMESPACE` if different from `external-secrets`
+- [applications/AI/demo/aks](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/demo/aks)
 
-Vault secret fields used:
+Important lesson:
 
-- `GITLAB_TOKEN`
+- that Terraform folder expects the resource group and VNet/subnet to already exist
+- it does not create the resource group or the network by itself
+
+When the resource group was deleted, AKS creation failed with:
+
+```text
+ResourceGroupNotFound: Resource group 'rg-ai-demo-aks-dev' could not be found
+```
+
+After the resource group was recreated, AKS creation then failed with:
+
+```text
+Failed to get a VNet: vnet-ai-demo-aks-dev
+```
+
+That means these resources must exist before running that Terraform:
+
+- resource group:
+  - `rg-ai-demo-aks-dev`
+- VNet:
+  - `vnet-ai-demo-aks-dev`
+- subnet:
+  - `snet-aks`
+
+Useful Azure checks:
+
+```bash
+az account list -o table
+az account set --subscription "<SUBSCRIPTION_ID>"
+az group list -o table
+az network vnet list --resource-group rg-ai-demo-aks-dev -o table
+az network vnet subnet list --resource-group rg-ai-demo-aks-dev --vnet-name vnet-ai-demo-aks-dev -o table
+az aks list -o table
+```
+
+If the resource group is missing:
+
+```bash
+az group create --name rg-ai-demo-aks-dev --location eastus
+```
+
+If the VNet and subnet are missing:
+
+```bash
+az network vnet create \
+  --resource-group rg-ai-demo-aks-dev \
+  --name vnet-ai-demo-aks-dev \
+  --address-prefix 10.0.0.0/16 \
+  --subnet-name snet-aks \
+  --subnet-prefix 10.0.1.0/24
+```
+
+Then rerun Terraform from the AKS folder:
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+To get AKS credentials after cluster creation:
+
+```bash
+az aks get-credentials \
+  --resource-group rg-ai-demo-aks-dev \
+  --name sap-dev-aksdemo1 \
+  --overwrite-existing
+
+kubectl get nodes
+```
+
+## Vault Configuration
+
+Vault is used for:
+
+- Docker Hub credentials
+- Argo CD credentials
+- AKS kubeconfig
+- application secrets
+- MongoDB credentials
+
+Vault secrets are stored in:
+
+- mount:
+  - `kv/jcloudcodes/java-web-app`
+- path:
+  - `jcloudcodes/java-web-app`
+
+Important fields already used by the pipeline:
+
+- `AKS_KUBECONFIG_B64`
 - `ARGOCD_USERNAME`
 - `ARGOCD_PASSWORD`
-- `AKS_KUBECONFIG_B64`
+- `DOCKER_USERNAME`
+- `DOCKER_PASSWORD`
+- `GITLAB_TOKEN`
 - `MONGO_DB_HOSTNAME`
 - `MONGO_DB_USERNAME`
 - `MONGO_DB_PASSWORD`
 - `MONGO_INITDB_ROOT_USERNAME`
 - `MONGO_INITDB_ROOT_PASSWORD`
-- `DOCKER_USERNAME`
-- `DOCKER_PASSWORD`
-
-## Useful Commands
-
-### AKS credentials from Mac
-
-```bash
-az account list -o table
-az account set --subscription "<SUBSCRIPTION_ID>"
-az aks list -o table
-az aks get-credentials --resource-group "<RESOURCE_GROUP>" --name "<AKS_CLUSTER_NAME>" --overwrite-existing
-kubectl get nodes
-```
 
 ### Store AKS kubeconfig in Vault
 
 ```bash
 kubectl config view --minify --flatten > aks-kubeconfig.yaml
 base64 < aks-kubeconfig.yaml | tr -d '\n' > aks-kubeconfig.b64
-vault kv put -mount="$VAULT_KV_MOUNT" "$VAULT_SECRET_PATH" AKS_KUBECONFIG_B64="$(cat aks-kubeconfig.b64)"
+
+vault kv put -mount="kv/jcloudcodes/java-web-app" "jcloudcodes/java-web-app" \
+  AKS_KUBECONFIG_B64="$(cat aks-kubeconfig.b64)"
 ```
 
-### Argo CD checks
+### Jenkins Vault AppRole
+
+Jenkins does not use the old GitLab JWT role.
+
+Jenkins uses an AppRole.
+
+Create the policy file:
 
 ```bash
-argocd login argocd.jcloudcodes.com --username admin --password '<PASSWORD>' --insecure --grpc-web
-argocd app list --grpc-web
-argocd app get jcloud-springboot-aks-app --grpc-web
-argocd app sync jcloud-springboot-aks-app --grpc-web
-```
-
-### Storage and Mongo checks
-
-```bash
-kubectl get storageclass
-kubectl -n mss-dev get pvc
-kubectl -n mss-dev describe pvc mongo-data-mongo-0
-kubectl -n mss-dev describe pod mongo-0
-```
-
-### External Secrets checks
-
-```bash
-kubectl get deploy -A | grep external-secrets
-kubectl get externalsecret -n mss-dev
-kubectl get clustersecretstore
-kubectl describe clustersecretstore vault-backend
-kubectl get secret -n mss-dev
-```
-
-## Troubleshooting History
-
-### 1. GitLab shared runner minutes exhausted
-
-Error:
-
-```text
-The jcloudcodes namespace has reached its shared runner compute minutes quota
-```
-
-Fix:
-
-- Installed a self-managed GitLab Runner on the RHEL VM.
-- Registered it as a group-level runner.
-- Installed missing tools for the shell runner:
-  - `python3-pip`
-  - `docker`
-  - `kubectl`
-  - `yq`
-
-Why:
-
-- Shell runners use the VM tools directly.
-- Shared runner minutes do not apply to self-managed runners.
-
-### 2. GitLab runner picked up jobs but VM tools were missing
-
-Errors:
-
-```text
-python3.12: command not found
-/usr/bin/python3: No module named pip
-docker: command not found
-kubectl: command not found
-yq: command not found
-```
-
-Fix:
-
-- Installed the required packages and Docker engine on the runner VM.
-
-Why:
-
-- `image:` and `services:` do not provide tools for a shell executor.
-
-### 3. Vault JWT login failed because of wrong project binding
-
-Error:
-
-```text
-claim "project_id" does not match any associated bound claim values
-```
-
-Fix:
-
-- Updated the Vault JWT role to include the new GitLab `project_id`.
-
-Example:
-
-```json
-"bound_claims": {
-  "project_id": ["81669677", "81838176", "82248219"]
-}
-```
-
-Why:
-
-- Vault JWT auth was restricted to specific GitLab project IDs.
-
-### 4. AKS and GKE template collision
-
-Problem:
-
-- The shared Java Maven pipeline was including both GKE and AKS GitOps templates.
-
-Fix:
-
-- Removed automatic inclusion of both cluster templates from:
-  - [pipelines/java-maven/.java.maven.pipeline.yml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloudcodes_template/gitlab-ci/pipelines/java-maven/.java.maven.pipeline.yml)
-- Left cluster selection to each app repo.
-
-Why:
-
-- Each app should choose its own cluster-specific deployment template.
-
-### 5. Missing Argo CD application
-
-Problem:
-
-- The pipeline could log in to Argo CD, but the target app did not exist.
-
-Fix:
-
-- Added bootstrap flow in the AKS template to apply the app manifest from the GitOps repo:
-  - `.bootstrap_argocd_app`
-- Updated the app pipeline to use:
-  - `bootstrap:argocd-app`
-
-Why:
-
-- Argo CD cannot sync an app until the `Application` resource itself exists.
-
-### 6. Wrong app manifest in the GitOps repo
-
-Problems found in [applications/mss-dev.yaml](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/applications/AI/jcloud_argocd/applications/mss-dev.yaml):
-
-- wrong app name
-- wrong chart path
-- wrong namespace
-
-Fix:
-
-- Updated it to:
-  - app name: `jcloud-springboot-aks-app`
-  - chart path: `helm/mss-mongodb-app`
-  - namespace: `mss-dev`
-
-Why:
-
-- The GitOps app must point to the actual chart and correct target namespace.
-
-### 7. Argo CD app existed but GitOps repo auth failed
-
-Error:
-
-```text
-authentication required: HTTP Basic: Access denied
-```
-
-Fix:
-
-- Added the missing GitOps repo to Argo CD with valid GitLab token credentials:
-
-```bash
-argocd repo add https://gitlab.com/UDdeployTemplate/jcloud_argocd.git \
-  --username YOUR_GITLAB_USERNAME \
-  --password YOUR_GITLAB_TOKEN \
-  --grpc-web
-```
-
-Why:
-
-- Argo CD repo credentials are separate from GitLab CI repo access.
-
-### 8. Vault token refresh job failed on token creation
-
-Error:
-
-```text
-vault token create ... permission denied
-```
-
-Fix:
-
-- Updated the AKS template to fall back to the JWT-authenticated token if dedicated ESO token creation is denied.
-
-Why:
-
-- This avoided a hard pipeline stop and allowed the cluster-side ESO issue to be debugged next.
-
-### 9. `external-secrets` namespace did not exist
-
-Error:
-
-```text
-namespaces "external-secrets" not found
-```
-
-Fix:
-
-- Updated the AKS template to create the namespace if missing and to use `EXTERNAL_SECRETS_NAMESPACE` if set.
-
-Why:
-
-- The pipeline was assuming the namespace already existed.
-
-### 10. External Secrets operator existed but Vault store was missing or invalid
-
-Observed:
-
-```bash
-kubectl get externalsecret -n mss-dev
-kubectl get clustersecretstore
-kubectl describe clustersecretstore vault-backend
-```
-
-Errors seen:
-
-- `SecretSyncedError`
-- `InvalidProviderConfig`
-- `invalid vault credentials`
-- `auth/token/lookup-self`
-- `403 permission denied`
-
-Fixes:
-
-- Ensured `ClusterSecretStore` `vault-backend` existed.
-- Verified it used:
-  - secret `vault-token`
-  - namespace `external-secrets`
-- Created a proper Vault policy and token for ESO.
-
-Example policy:
-
-```hcl
+cat > jenkins-java-web-app.hcl <<'EOF'
 path "kv/jcloudcodes/java-web-app/data/jcloudcodes/java-web-app" {
   capabilities = ["read"]
 }
@@ -349,131 +203,488 @@ path "kv/jcloudcodes/java-web-app/data/jcloudcodes/java-web-app" {
 path "auth/token/lookup-self" {
   capabilities = ["read"]
 }
+
+path "auth/token/create" {
+  capabilities = ["create", "update"]
+}
+
+path "auth/token/create/*" {
+  capabilities = ["create", "update"]
+}
+EOF
 ```
 
-Why:
+Write the policy:
 
-- ESO needs a valid Vault token and the right policy to fetch secrets and validate itself.
+```bash
+export VAULT_ADDR="https://jcloudcodes-public-vault-e0a9d77c.e1f8f4d8.z1.hashicorp.cloud:8200"
+export VAULT_NAMESPACE="admin"
+export VAULT_TOKEN="<VAULT_ADMIN_TOKEN>"
 
-### 11. `mongo-secret` and `dockerhub-secret` were missing
+vault policy write jenkins-java-web-app jenkins-java-web-app.hcl
+vault policy read jenkins-java-web-app
+```
 
-Observed pod errors:
+Enable AppRole if needed:
+
+```bash
+vault auth list
+vault auth enable approle
+```
+
+Create or update the Jenkins AppRole:
+
+```bash
+vault write auth/approle/role/jenkins-java-web-app \
+  token_policies="jenkins-java-web-app,eso-mongo-read" \
+  token_ttl="1h" \
+  token_max_ttl="4h"
+```
+
+Get the AppRole values:
+
+```bash
+vault read -field=role_id auth/approle/role/jenkins-java-web-app/role-id
+vault write -f -field=secret_id auth/approle/role/jenkins-java-web-app/secret-id
+```
+
+Store them in Jenkins as `Secret text` credentials:
+
+- `vault-approle-role-id`
+- `vault-approle-secret-id`
+
+### Why the Jenkins Vault policy needed token create permissions
+
+Without `auth/token/create`, Jenkins failed with:
 
 ```text
-Error: secret "mongo-secret" not found
-Unable to retrieve some image pull secrets (dockerhub-secret)
+Code: 403
+permission denied
 ```
 
-What we confirmed:
-
-- The chart in the GitOps repo really does create:
-  - `ExternalSecret` for `mongo-secret`
-  - `ExternalSecret` for `dockerhub-secret`
-
-Why the secrets were still missing:
-
-- Argo CD applies `ExternalSecret` resources.
-- External Secrets Operator must then read Vault and create actual Kubernetes `Secret` objects.
-- If the Vault store or token is broken, the `Secret` objects are never materialized.
-
-### 12. MongoDB pod pending because of invalid storage class
-
-Error:
+After that permission was added, Vault then failed with:
 
 ```text
-pod has unbound immediate PersistentVolumeClaims
+child policies must be subset of parent
 ```
 
-Observed storage classes in AKS:
+That was fixed by attaching `eso-mongo-read` to the Jenkins AppRole itself:
 
-- `default`
-- `managed`
-- `managed-csi`
-- `managed-csi-premium`
-- others
+```bash
+vault write auth/approle/role/jenkins-java-web-app \
+  token_policies="jenkins-java-web-app,eso-mongo-read" \
+  token_ttl="1h" \
+  token_max_ttl="4h"
+```
 
-Problem in GitOps values:
+## Jenkins Slave Tooling Notes
+
+The Jenkins slave must be able to run:
+
+- `git`
+- `vault`
+- `docker`
+
+Maven is provided through Jenkins tool configuration:
+
+- `sharedMaven`
+
+The shared library was updated to run several deployment tools from Docker images instead of requiring host installs:
+
+- `dtzar/helm-kubectl:3.19.1`
+- `quay.io/argoproj/argocd:v3.4.1`
+- `mikefarah/yq:4.53.2`
+
+The Jenkins slave still needed `vault` on the host. After installing it under `/usr/local/bin`, the Jenkins user could not find it, so a symlink or PATH update was needed.
+
+Example fix:
+
+```bash
+sudo ln -s /usr/local/bin/vault /usr/bin/vault
+sudo -u jenkins which vault
+sudo -u jenkins vault version
+```
+
+## Argo CD Installation
+
+### Fresh install
+
+```bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+### Run Argo CD server behind ingress
+
+Patch Argo CD server to run insecure internally:
+
+```bash
+kubectl -n argocd patch deployment argocd-server \
+  --type='json' \
+  -p='[
+    {"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--insecure"}
+  ]'
+```
+
+Verify the args:
+
+```bash
+kubectl get deploy argocd-server -n argocd -o jsonpath='{.spec.template.spec.containers[0].args}'; echo
+```
+
+Expected output should include:
+
+- `--insecure`
+
+### Get Argo CD admin password
+
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d; echo
+```
+
+Username:
+
+```bash
+echo admin
+```
+
+### Argo CD CLI login
+
+```bash
+argocd login argocd.jcloudcodes.com \
+  --username admin \
+  --password '<PASSWORD>' \
+  --insecure \
+  --grpc-web
+```
+
+## Argo CD ApplicationSet CRD Fix
+
+Argo CD core worked, but `argocd-applicationset-controller` crashed because the `ApplicationSet` CRD was missing.
+
+Controller log showed:
+
+```text
+no matches for kind "ApplicationSet" in version "argoproj.io/v1alpha1"
+```
+
+Regular `kubectl apply` on the CRD failed with:
+
+```text
+metadata.annotations: Too long: may not be more than 262144 bytes
+```
+
+That happened because the CRD is large and client-side apply tried to store a huge `last-applied-configuration` annotation.
+
+Use server-side apply instead:
+
+```bash
+kubectl apply --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/crds/applicationset-crd.yaml
+```
+
+Then restart the controller:
+
+```bash
+kubectl rollout restart deployment argocd-applicationset-controller -n argocd
+kubectl get crd applicationsets.argoproj.io
+kubectl get pods -n argocd
+```
+
+Useful Argo CD checks:
+
+```bash
+kubectl -n argocd get po
+kubectl -n argocd get svc
+kubectl -n argocd get ingress
+kubectl -n argocd logs deploy/argocd-server
+kubectl -n argocd logs pod/<applicationset-pod-name> --previous
+```
+
+## ingress-nginx Installation
+
+Create values file for the Azure load balancer health probe:
 
 ```yaml
-mongo:
-  persistence:
-    storageClassName: standard-rwo
+controller:
+  service:
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
 ```
 
-Fix:
+Install ingress-nginx:
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+
+kubectl create namespace ingress-nginx --dry-run=client -o yaml | kubectl apply -f -
+
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  -n ingress-nginx \
+  -f ingress-nginx-values.yaml
+```
+
+Check the external IP:
+
+```bash
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+```
+
+The working environment exposed:
+
+- `48.206.107.91`
+
+If the annotation is missing and the service already exists, this also works:
+
+```bash
+kubectl annotate svc ingress-nginx-controller \
+  -n ingress-nginx \
+  service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path=/healthz \
+  --overwrite
+```
+
+## Argo CD Ingress
+
+The stable working pattern for Argo CD behind nginx was:
+
+- Argo CD server with `--insecure`
+- ingress points to Argo CD service port `80`
+- no `backend-protocol: HTTPS` annotation
+
+Use:
 
 ```yaml
-mongo:
-  persistence:
-    storageClassName: managed-csi
-    size: 10Gi
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: argocd.jcloudcodes.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
 ```
 
-Why:
+Apply it:
 
-- `standard-rwo` did not exist in AKS.
+```bash
+kubectl apply -f argocd-ingress.yaml
+kubectl get ingress -n argocd
+kubectl describe ingress -n argocd argocd-server-ingress
+```
 
-### 13. StatefulSet immutable field error after storage class change
+DNS should point:
 
-Error:
+- `argocd.jcloudcodes.com` -> ingress external IP
+
+Quick ingress test:
+
+```bash
+curl -I -H "Host: argocd.jcloudcodes.com" http://48.206.107.91
+```
+
+## Bootstrap the Argo CD Application
+
+After Argo CD and the `Application` CRD are ready:
+
+```bash
+kubectl apply --validate=false -f applications/mss-dev.yaml
+kubectl get applications -n argocd
+```
+
+If this fails with:
 
 ```text
-StatefulSet.apps "mongo" is invalid: spec: Forbidden
+no matches for kind "Application" in version "argoproj.io/v1alpha1"
 ```
 
-Fix:
+it means Argo CD is not fully installed yet and the `applications.argoproj.io` CRD is missing.
+
+Verify:
 
 ```bash
-kubectl -n mss-dev delete statefulset mongo --cascade=orphan
-kubectl -n mss-dev delete pvc mongo-data-mongo-0
-argocd app sync jcloud-springboot-aks-app --grpc-web
+kubectl get crd applications.argoproj.io
 ```
 
-Why:
+## Useful Runtime Commands
 
-- Changing `volumeClaimTemplates` is not allowed in-place on a StatefulSet.
-
-## Current AKS Notes
-
-- AKS storage class should use `managed-csi` for MongoDB PVCs unless the cluster standard changes.
-- `AKS_KUBECONFIG_B64` is stored in Vault and restored into `~/.kube/config` in CI.
-- Argo CD sync depends on the GitOps repo being registered in Argo CD with valid GitLab credentials.
-- External Secrets requires:
-  - operator running
-  - valid `ClusterSecretStore`
-  - valid `vault-token`
-  - Vault policy that can read the configured secret path
-
-## Recommended Next Improvements
-
-- Keep AKS and GKE templates separate by app selection, not shared auto-include.
-- Manage External Secrets installation and `ClusterSecretStore` bootstrap through GitOps as platform components.
-- Use dedicated Vault policies and a renewable token path for ESO.
-- Document exact Vault secret keys and ownership in a platform runbook.
-- Consider managed MongoDB for production instead of in-cluster MongoDB.
-
-## Quick Recovery Commands
-
-Resync the app:
+### Kubernetes connectivity
 
 ```bash
-argocd app sync jcloud-springboot-aks-app --grpc-web
-argocd app wait jcloud-springboot-aks-app --health --sync --timeout 600 --grpc-web
+kubectl get nodes
+kubectl get ns
+kubectl get pods -A
+kubectl config current-context
 ```
 
-Check app status:
+### Service and ingress checks
 
 ```bash
-argocd app get jcloud-springboot-aks-app --grpc-web
-kubectl get pods -n mss-dev
-kubectl get pvc -n mss-dev
-kubectl get externalsecret -n mss-dev
-kubectl get secret -n mss-dev
+kubectl get svc -A
+kubectl get ingress -A
+kubectl get endpoints -A
 ```
 
-Check Mongo state:
+### App deployment checks
 
 ```bash
+kubectl -n mss-dev get deploy
+kubectl -n mss-dev get po
+kubectl -n mss-dev get svc
+kubectl -n mss-dev get secret
+kubectl -n mss-dev describe deploy jcloud-springboot-aks-app
+```
+
+### External Secrets checks
+
+```bash
+kubectl get clustersecretstore
+kubectl describe clustersecretstore vault-backend
+kubectl -n mss-dev get externalsecret
+kubectl -n mss-dev describe externalsecret
+```
+
+### Mongo checks
+
+```bash
+kubectl -n mss-dev get statefulset
+kubectl -n mss-dev get pvc
+kubectl -n mss-dev describe pvc
 kubectl -n mss-dev describe pod mongo-0
-kubectl -n mss-dev describe pvc mongo-data-mongo-0
 ```
+
+## Issues Hit And Fixes
+
+### 1. Jenkins shared library failed to load
+
+Error:
+
+```text
+No version specified for library JavaShared_library
+```
+
+Fix:
+
+```groovy
+@Library('JavaShared_library@main') _
+```
+
+### 2. Declarative pipeline failed from `src/`
+
+Error:
+
+```text
+Scripts not permitted to use method ... PlatformJavaAksPipeline agent ...
+```
+
+Fix:
+
+- keep Declarative `pipeline {}` in:
+  - [vars/platformJavaAksPipeline.groovy](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/JavaShared_library/vars/platformJavaAksPipeline.groovy)
+- keep helper logic in:
+  - [src/org/jcloudcodes/pipelines/PlatformJavaAksPipeline.groovy](/Users/makutaworldmpm/Desktop/eagunu_2025/jcloudcodes/jenkins/JavaShared_library/src/org/jcloudcodes/pipelines/PlatformJavaAksPipeline.groovy)
+
+### 3. Jenkins slave ran builds but missing tools
+
+Errors seen:
+
+```text
+git: command not found
+vault: command not found
+mvn: command not found
+```
+
+Fix:
+
+- install `git` on the slave
+- expose `vault` to the Jenkins user
+- use Jenkins Maven tool `sharedMaven`
+
+### 4. Docker stage failed from Groovy property interpolation
+
+Error:
+
+```text
+Scripts not permitted to use method groovy.lang.GroovyObject getProperty ... DOCKER_PASSWORD
+```
+
+Fix:
+
+- read Docker credentials from Vault
+- escape shell variables correctly in the shared library
+
+### 5. GitOps repo auth failed even with correct token
+
+Error:
+
+```text
+HTTP Basic: Access denied
+```
+
+Fix:
+
+- the clone URL was using single quotes, so `$GITOPS_TOKEN` was not expanding
+- changed the clone command to use double quotes in the shared library
+
+### 6. AKS API resolved on host but not inside tool containers
+
+Error:
+
+```text
+lookup sap-dev-aksdemo1-a02mre80.hcp.eastus.azmk8s.io: i/o timeout
+```
+
+Host test showed the AKS API was reachable:
+
+```bash
+curl -vk https://sap-dev-aksdemo1-a02mre80.hcp.eastus.azmk8s.io:443
+ping -c 1 sap-dev-aksdemo1-a02mre80.hcp.eastus.azmk8s.io
+```
+
+Fix:
+
+- run the tool containers with host networking:
+  - `docker run --network host ...`
+
+### 7. Argo CD login loop and 502/404 behavior
+
+Working final direction:
+
+- `argocd-server` runs with `--insecure`
+- ingress points to service port `80`
+- ingress-nginx service has Azure health probe annotation
+
+### 8. ApplicationSet controller crash
+
+Error:
+
+```text
+failed to get restmapping: no matches for kind "ApplicationSet" in version "argoproj.io/v1alpha1"
+```
+
+Fix:
+
+```bash
+kubectl apply --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/crds/applicationset-crd.yaml
+kubectl rollout restart deployment argocd-applicationset-controller -n argocd
+```
+
+## Notes
+
+- The shared library was intentionally tested in small steps first:
+  - `Validate`
+  - `Build`
+  - `Test`
+  - `Package`
+- Then later stages were enabled one by one.
+- The shared pipeline is currently configured to keep only the latest 5 Jenkins builds.

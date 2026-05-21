@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: https
+      protocol: TCP
+#kubectl annotate svc ingress-nginx-controller \
+  # -n ingress-nginx \
+  # service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path=/healthz \
+  # --overwrite
+
+#kubectl get svc ingress-nginx-controller -n ingress-nginx -o yaml > ingress-nginx-svc.yaml

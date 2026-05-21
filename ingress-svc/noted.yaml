@@ -1,0 +1,17 @@
+kubectl apply -f argocd-ingress.yaml
+kubectl apply -f grafana-ingress.yaml
+kubectl apply -f prometheus-ingress.yaml
+kubectl apply -f mss-dev-ingress.yaml
+kubectl apply -f ai-ingress.yaml
+
+
+kubectl get svc -n argocd
+kubectl get svc -n monitoring
+kubectl get svc -n mss-dev
+kubectl get svc -n ai-platform
+
+
+kubectl get svc -n ingress-nginx
+kubectl get ingress -A
+kubectl get svc -n argocd
+kubectl describe ingress -n argocd argocd-server-ingress

@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-ingress
+  namespace: ai-platform
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ai.jcloudcodes.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ai-inference
+                port:
+                  number: 80
